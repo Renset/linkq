@@ -9,10 +9,13 @@ import Foundation
 import AppKit
 import SwiftyPing
 import ServiceManagement
+import Network
 
 struct Constants {
     static let pingingHost = "1.1.1.1"
     static let interval: TimeInterval = 1
+    static let pingOffline = 1.0
+    static let pingPoor = 0.3
     static let jitterGood = 0.02 // 20ms
     static let jitterAverage = 0.1 // 100ms
 }
@@ -22,19 +25,32 @@ class StatusBarController {
     var statusItem: NSStatusItem!
     var rttBuffer: [TimeInterval] = []
     let rttBufferSize = 10
+    var pinger: SwiftyPing?
+    
+    private let monitor = NWPathMonitor()
     
     init() {
         DispatchQueue.main.async {
             self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-            self.startPing()
             self.setupMenu()
         }
+        
+        monitor.pathUpdateHandler = { [weak self] path in
+            if path.status == .satisfied {
+                self?.startPing()
+            } else {
+                try? self?.pinger?.stopPinging()
+                self?.updateStatusBarIcon(quality: "offline")
+            }
+        }
+        let queue = DispatchQueue(label: "NetworkMonitor")
+        monitor.start(queue: queue)
     }
     
     func startPing() {
-        let pinger = try? SwiftyPing(host: Constants.pingingHost, configuration: PingConfiguration(interval: Constants.interval, with: 5), queue: DispatchQueue.global())
+        pinger = try? SwiftyPing(host: Constants.pingingHost, configuration: PingConfiguration(interval: Constants.interval, with: 5), queue: DispatchQueue.global())
+        
         pinger?.observer = { response in
-            
             let latency = response.duration
             self.rttBuffer.append(latency)
             if self.rttBuffer.count > self.rttBufferSize {
@@ -42,7 +58,12 @@ class StatusBarController {
             }
             
             DispatchQueue.main.async {
-                if let jitter = self.standardDeviation() {
+                print(latency)
+                if latency > Constants.pingOffline {
+                    self.updateStatusBarIcon(quality: "offline")
+                } else if latency > Constants.pingPoor { // More than 300ms latency
+                    self.updateStatusBarIcon(quality: "poor")
+                } else if let jitter = self.standardDeviation() {
                     if jitter < Constants.jitterGood {
                         self.updateStatusBarIcon(quality: "good")
                     } else if jitter < Constants.jitterAverage {
@@ -82,6 +103,9 @@ class StatusBarController {
             case "poor":
                 self.statusItem.button?.image = NSImage(named: "PoorConnection")
                 menuItem?.title = "Connection: Poor"
+            case "offline":
+                self.statusItem.button?.image = NSImage(named: "OfflineConnection")
+                menuItem?.title = "Connection: Offline"
             default:
                 self.statusItem.button?.image = NSImage(named: "UnknownConnection")
                 menuItem?.title = "Connection: Unknown"
