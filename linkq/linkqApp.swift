@@ -6,12 +6,23 @@
 //
 
 import SwiftUI
+import AppKit
+import SwiftyPing
+import ServiceManagement
+
 
 @main
 struct linkqApp: App {
+    private let statusBarController = StatusBarController()
+    
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        Settings {
+            EmptyView()
+                .onAppear {
+                    statusBarController.updateStatusBarIcon(quality: "unknown")
+                }
         }
     }
 }
+
+
