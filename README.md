@@ -1,3 +1,6 @@
+<div align="center"><img width="256" alt="256@2x" src="https://github.com/Renset/linkq/assets/364877/af4968f6-27d4-4980-a1cc-1d881702ff53"></div>
+
+
 # linkq
 A very lightweight Swift app to automatically detect the quality of network connection and show it in the macOS menu bar.
 
