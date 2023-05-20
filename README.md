@@ -24,7 +24,7 @@ You can download the latest signed universal binary on [Releases](https://github
 
 
 ## Motivation
-I just wanted to create a simple utility which will show we if I have glitches in my internet connection during my Zoom calls for better call control, especially with some strange [Macbook Wi-Fi issues](https://developer.apple.com/forums/thread/97805).
+I just wanted to create a simple utility which will show me if I have glitches in my internet connection during my Zoom calls for better call control, especially with some strange [Macbook Wi-Fi issues](https://developer.apple.com/forums/thread/97805).
 
 ## Contribution
 Contributions are welcomed, however, adding new features to linkq is not planned at the moment.
