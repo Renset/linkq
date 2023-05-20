@@ -5,7 +5,7 @@
 
 
 # linkq
-Deadly simple macOS menu bar utility to display the quality of the current internet conneciton.
+Dead simple macOS menu bar utility to display the quality of the current internet conneciton.
 Automatically detects and displays the following connection states:
 - Offline
 - Poor
