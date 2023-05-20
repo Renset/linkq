@@ -11,12 +11,13 @@ import ServiceManagement
 import Network
 
 struct Constants {
+    static let githubUrl = "https://github.com/Renset/linkq"
     static let pingingHost = "1.1.1.1"
     static let interval: TimeInterval = 1
     static let pingOffline = 1.0
     static let pingPoor = 0.3
-    static let jitterGood = 0.015 // 15ms
-    static let jitterAverage = 0.1 // 100ms
+    static let jitterGood = 0.015
+    static let jitterAverage = 0.1
 }
 
 
@@ -36,6 +37,7 @@ class StatusBarController {
         
         monitor.pathUpdateHandler = { [weak self] path in
             if path.status == .satisfied {
+                self?.stopPing()
                 self?.startPing()
             } else {
                 self?.stopPing()
@@ -57,7 +59,6 @@ class StatusBarController {
             }
             
             DispatchQueue.main.async {
-                print(latency)
                 if latency > Constants.pingOffline {
                     self.updateStatusBarIcon(quality: "offline")
                 } else if latency > Constants.pingPoor {
@@ -99,19 +100,19 @@ class StatusBarController {
             switch quality {
             case "good":
                 self.statusItem.button?.image = NSImage(named: "GoodConnection")
-                menuItem?.title = "Connection: Good"
+                menuItem?.title = "Good connection 👍"
             case "average":
                 self.statusItem.button?.image = NSImage(named: "AverageConnection")
-                menuItem?.title = "Connection: Average"
+                menuItem?.title = "Average connection 🤨"
             case "poor":
                 self.statusItem.button?.image = NSImage(named: "PoorConnection")
-                menuItem?.title = "Connection: Poor"
+                menuItem?.title = "Poor conneciton 👎"
             case "offline":
                 self.statusItem.button?.image = NSImage(named: "OfflineConnection")
-                menuItem?.title = "Connection: Offline"
+                menuItem?.title = "Offline 🙀"
             default:
                 self.statusItem.button?.image = NSImage(named: "UnknownConnection")
-                menuItem?.title = "Connection: Unknown"
+                menuItem?.title = "Unknown connection status 🤔"
             }
         }
     }
@@ -123,13 +124,20 @@ class StatusBarController {
         statusMenuItem.tag = 1
         menu.addItem(statusMenuItem)
         
+        menu.addItem(NSMenuItem.separator())
+        
         let loginItem = NSMenuItem(title: "Start at login", action: #selector(toggleStartAtLogin), keyEquivalent: "")
         loginItem.target = self
         
         let savedState = UserDefaults.standard.integer(forKey: "startAtLoginState")
         loginItem.state = NSControl.StateValue(rawValue: savedState)
-        
         menu.addItem(loginItem)
+        
+        let githubReleasesItem = NSMenuItem(title: "Open GitHub page", action: #selector(openGithubReleases), keyEquivalent: "")
+        githubReleasesItem.target = self
+        menu.addItem(githubReleasesItem)
+        
+        menu.addItem(NSMenuItem.separator())
         
         let quitMenuItem = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "")
         quitMenuItem.target = self
@@ -145,6 +153,12 @@ class StatusBarController {
         if let item = statusItem.menu?.item(withTitle: "Start at login") {
             item.state = wasEnabled ? .off : .on
             UserDefaults.standard.set(item.state.rawValue, forKey: "startAtLoginState")
+        }
+    }
+    
+    @objc func openGithubReleases() {
+        if let url = URL(string: Constants.githubUrl) {
+            NSWorkspace.shared.open(url)
         }
     }
     

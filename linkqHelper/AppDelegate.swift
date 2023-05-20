@@ -16,7 +16,6 @@ class HelperAppDelegate: NSObject, NSApplicationDelegate {
 
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        print("Helper app launched.")
         
         let runningApps = NSWorkspace.shared.runningApplications
         let isRunning = runningApps.contains {
@@ -24,7 +23,6 @@ class HelperAppDelegate: NSObject, NSApplicationDelegate {
         }
         
         if !isRunning {
-            print("Main app not running. Attempting to launch main app...")
             var path = Bundle.main.bundlePath as NSString
             for _ in 1...4 {
                 path = path.deletingLastPathComponent as NSString
@@ -32,9 +30,7 @@ class HelperAppDelegate: NSObject, NSApplicationDelegate {
             
             let applicationPathString = path as String
             let pathURL = URL(fileURLWithPath: applicationPathString)
-            print("pathURL: \(pathURL)")
-            let success = NSWorkspace.shared.openApplication(at: pathURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
-            print("Launch success: \(success)")
+            NSWorkspace.shared.openApplication(at: pathURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
         }
     }
 
