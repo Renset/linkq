@@ -12,9 +12,9 @@ Automatically detects and displays the following connection states:
 - Average
 - Good
 
-You can download the latest universal binary on [Releases](https://github.com/Renset/linkq/releases) page.
+You can download the latest signed universal binary on [Releases](https://github.com/Renset/linkq/releases) page.
 
-# Screenshots
+## Screenshots
 
 <img width="260" alt="CleanShot 2023-05-20 at 23 21 43@2x" src="https://github.com/Renset/linkq/assets/364877/460c9a7e-775f-49bf-82f2-fd12a6af78ac">
 
@@ -23,14 +23,14 @@ You can download the latest universal binary on [Releases](https://github.com/Re
 <img width="260" alt="CleanShot 2023-05-20 at 23 22 19@2x" src="https://github.com/Renset/linkq/assets/364877/e814ac4e-6910-4e52-b094-335825454b7b">
 
 
-# Motivation
+## Motivation
 I just wanted to create a simple utility which will show we if I have glitches in my internet connection during my Zoom calls for better call control, especially with some strange [Macbook Wi-Fi issues](https://developer.apple.com/forums/thread/97805).
 
-# Contribution
+## Contribution
 Contributions are welcomed, however, adding new features to linkq is not planned at the moment.
 
-# Build
+## Build
 Checkout repository & build in Xcode.
 
-# License
+## License
 MIT. See [LICENSE](https://github.com/Renset/linkq/blob/main/LICENSE) for details.
