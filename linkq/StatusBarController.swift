@@ -5,7 +5,6 @@
 //  Created by Renat Notfullin on 19.05.2023.
 //
 
-import Foundation
 import AppKit
 import SwiftyPing
 import ServiceManagement
@@ -16,7 +15,7 @@ struct Constants {
     static let interval: TimeInterval = 1
     static let pingOffline = 1.0
     static let pingPoor = 0.3
-    static let jitterGood = 0.02 // 20ms
+    static let jitterGood = 0.015 // 15ms
     static let jitterAverage = 0.1 // 100ms
 }
 
@@ -39,7 +38,7 @@ class StatusBarController {
             if path.status == .satisfied {
                 self?.startPing()
             } else {
-                try? self?.pinger?.stopPinging()
+                self?.stopPing()
                 self?.updateStatusBarIcon(quality: "offline")
             }
         }
@@ -61,7 +60,7 @@ class StatusBarController {
                 print(latency)
                 if latency > Constants.pingOffline {
                     self.updateStatusBarIcon(quality: "offline")
-                } else if latency > Constants.pingPoor { // More than 300ms latency
+                } else if latency > Constants.pingPoor {
                     self.updateStatusBarIcon(quality: "poor")
                 } else if let jitter = self.standardDeviation() {
                     if jitter < Constants.jitterGood {
@@ -77,6 +76,10 @@ class StatusBarController {
             }
         }
         try? pinger?.startPinging()
+    }
+    
+    func stopPing() {
+        pinger?.stopPinging()
     }
     
     func standardDeviation() -> TimeInterval? {
