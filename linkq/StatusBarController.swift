@@ -125,6 +125,10 @@ class StatusBarController {
         
         let loginItem = NSMenuItem(title: "Start at login", action: #selector(toggleStartAtLogin), keyEquivalent: "")
         loginItem.target = self
+        
+        let savedState = UserDefaults.standard.integer(forKey: "startAtLoginState")
+        loginItem.state = NSControl.StateValue(rawValue: savedState)
+        
         menu.addItem(loginItem)
         
         let quitMenuItem = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "")
@@ -140,6 +144,7 @@ class StatusBarController {
         SMLoginItemSetEnabled(identifier, !wasEnabled)
         if let item = statusItem.menu?.item(withTitle: "Start at login") {
             item.state = wasEnabled ? .off : .on
+            UserDefaults.standard.set(item.state.rawValue, forKey: "startAtLoginState")
         }
     }
     
