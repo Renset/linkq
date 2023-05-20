@@ -1,18 +1,36 @@
-<div align="center"><img width="256" alt="256@2x" src="https://github.com/Renset/linkq/assets/364877/af4968f6-27d4-4980-a1cc-1d881702ff53"></div>
+<div align="center">
+<img width="256" alt="256@2x" src="https://github.com/Renset/linkq/assets/364877/8fe64119-8b98-4b2d-8ceb-c3e6331e44c3">
+
+</div>
 
 
 # linkq
-A very lightweight Swift app to automatically detect the quality of network connection and show it in the macOS menu bar.
+Deadly simple macOS menu bar utility to display the quality of the current internet conneciton.
+Automatically detects and displays the following connection states:
+- Offline
+- Poor
+- Average
+- Good
 
-<img width="247" alt="CleanShot 2023-05-19 at 02 59 40@2x" src="https://github.com/Renset/linkq/assets/364877/0d1cdf68-c694-40c4-b0e3-e7180c2bc36b">
+You can download the latest universal binary on [Releases](https://github.com/Renset/linkq/releases) page.
 
-<img width="242" alt="CleanShot 2023-05-19 at 02 14 33@2x" src="https://github.com/Renset/linkq/assets/364877/5b6b9cf0-30f1-49d7-b2af-b2a06f6e273c">
+# Screenshots
 
-<img width="247" alt="CleanShot 2023-05-19 at 02 21 01@2x" src="https://github.com/Renset/linkq/assets/364877/463bcca8-9a8f-4110-9552-b73ebe41df77">
+<img width="260" alt="CleanShot 2023-05-20 at 23 21 43@2x" src="https://github.com/Renset/linkq/assets/364877/460c9a7e-775f-49bf-82f2-fd12a6af78ac">
+
+<img width="260" alt="CleanShot 2023-05-20 at 23 23 21@2x" src="https://github.com/Renset/linkq/assets/364877/524ae5ce-3c44-449e-b7cf-7224b2858538">
+
+<img width="260" alt="CleanShot 2023-05-20 at 23 22 19@2x" src="https://github.com/Renset/linkq/assets/364877/e814ac4e-6910-4e52-b094-335825454b7b">
 
 
 # Motivation
-It can be challenging to distinguish local internet connectivity issues from server-side problems. Or, you might be in a crucial Zoom call and need to ensure your connection is stable for clear, uninterrupted communication. This is where linkq comes in. linkq allows you to monitor the quality of your internet connection, providing a straightforward way to understand your network performance. Whether you're coding, gaming, or in an important video conference, linkq helps you stay confident about your connection.
+I just wanted to create a simple utility which will show we if I have glitches in my internet connection during my Zoom calls for better call control, especially with some strange [Macbook Wi-Fi issues](https://developer.apple.com/forums/thread/97805).
 
-# Releases
-See [Releases](https://github.com/Renset/linkq/releases) page
+# Contribution
+Contributions are welcomed, however, adding new features to linkq is not planned at the moment.
+
+# Build
+Checkout repository & build in Xcode.
+
+# License
+MIT. See [LICENSE](https://github.com/Renset/linkq/blob/main/LICENSE) for details.
