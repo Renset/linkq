@@ -4,7 +4,7 @@
 </div>
 
 # linkq
-<img alt="GitHub top language" src="https://img.shields.io/github/languages/top/Renset/linkq"> <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Renset/linkq/total">
+<img alt="GitHub top language" src="https://img.shields.io/github/languages/top/Renset/linkq"> <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/Renset/linkq/xcode.yml"> <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Renset/linkq/total"> 
 
 Dead simple macOS menu bar utility to display the quality of the current internet connection.
 Automatically detects and displays the following connection states:
