@@ -23,6 +23,9 @@ You can download the latest signed universal binary on the [Releases](https://gi
 
 <img width="260" alt="CleanShot 2023-05-20 at 23 22 19@2x" src="https://github.com/Renset/linkq/assets/364877/e814ac4e-6910-4e52-b094-335825454b7b">
 
+## Firewall limitations
+The quality is measured based on ping jitter, that's why IMCP packets shouldn't be blocked by your ISP/Firewall. Otherwise, the app will display unrelevant 'disconnected' status.
+
 
 ## Motivation
 I just wanted to create a simple utility which will show me when I have glitches in my internet connection during my Zoom calls, taking into account some strange [Macbook Wi-Fi issues](https://developer.apple.com/forums/thread/97805).
