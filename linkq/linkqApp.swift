@@ -7,22 +7,24 @@
 
 import SwiftUI
 import AppKit
-import SwiftyPing
-import ServiceManagement
 
 
 @main
 struct linkqApp: App {
-    private let statusBarController = StatusBarController()
+    @StateObject private var appState: AppState
+    private let statusBarController: StatusBarController
+
+    init() {
+        let state = AppState()
+        _appState = StateObject(wrappedValue: state)
+        statusBarController = StatusBarController(state: state)
+    }
     
     var body: some Scene {
+        // Settings live in the window opened from the status bar menu
+        // (StatusBarController.showPreferences); this scene only satisfies App.
         Settings {
             EmptyView()
-                .onAppear {
-                    statusBarController.updateStatusBarIcon(quality: "unknown")
-                }
         }
     }
 }
-
-

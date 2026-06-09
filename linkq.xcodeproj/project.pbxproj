@@ -16,7 +16,22 @@
 		4ACFC8912A06F2A900D4053E /* linkqApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ACFC8902A06F2A900D4053E /* linkqApp.swift */; };
 		4ACFC8952A06F2AA00D4053E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4ACFC8942A06F2AA00D4053E /* Assets.xcassets */; };
 		4ACFC8982A06F2AA00D4053E /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4ACFC8972A06F2AA00D4053E /* Preview Assets.xcassets */; };
+		4AD000012D00000100000001 /* PrivilegedHelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AD000112D00000100000011 /* PrivilegedHelperProtocol.swift */; };
+		4AD000022D00000100000002 /* PrivilegedHelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AD000112D00000100000011 /* PrivilegedHelperProtocol.swift */; };
+		4AD000032D00000100000003 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AD000142D00000100000014 /* main.swift */; };
+		4AD000042D00000100000004 /* com.notfullin.linkqPrivilegedHelper in Copy Privileged Helper */ = {isa = PBXBuildFile; fileRef = 4AD000132D00000100000013 /* com.notfullin.linkqPrivilegedHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		4AD000062D00000100000006 /* WiFiTurboWatchdog.c in Sources */ = {isa = PBXBuildFile; fileRef = 4AD000232D00000100000023 /* WiFiTurboWatchdog.c */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4AD0001E2D0000010000001E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4ACFC8852A06F2A900D4053E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4AD0001C2D0000010000001C;
+			remoteInfo = linkqPrivilegedHelper;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		4AC719CF2A16DC4D00493637 /* CopyFiles */ = {
@@ -27,6 +42,17 @@
 			files = (
 				4AC719D02A16DC8B00493637 /* linkqHelper.app in CopyFiles */,
 			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4AD000182D00000100000018 /* Copy Privileged Helper */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LaunchServices;
+			dstSubfolderSpec = 1;
+			files = (
+				4AD000042D00000100000004 /* com.notfullin.linkqPrivilegedHelper in Copy Privileged Helper */,
+			);
+			name = "Copy Privileged Helper";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -43,6 +69,15 @@
 		4ACFC8942A06F2AA00D4053E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4ACFC8972A06F2AA00D4053E /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		4ACFC8992A06F2AA00D4053E /* linkq.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = linkq.entitlements; sourceTree = "<group>"; };
+		4AD000112D00000100000011 /* PrivilegedHelperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivilegedHelperProtocol.swift; sourceTree = "<group>"; };
+		4AD000122D00000100000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4AD000132D00000100000013 /* com.notfullin.linkqPrivilegedHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = com.notfullin.linkqPrivilegedHelper; sourceTree = BUILT_PRODUCTS_DIR; };
+		4AD000142D00000100000014 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		4AD000152D00000100000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4AD000162D00000100000016 /* com.notfullin.linkqPrivilegedHelper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = com.notfullin.linkqPrivilegedHelper.plist; sourceTree = "<group>"; };
+		4AD000232D00000100000023 /* WiFiTurboWatchdog.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = WiFiTurboWatchdog.c; sourceTree = "<group>"; };
+		4AD000242D00000100000024 /* WiFiTurboWatchdog.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WiFiTurboWatchdog.h; sourceTree = "<group>"; };
+		4AD000252D00000100000025 /* linkqPrivilegedHelper-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "linkqPrivilegedHelper-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +94,13 @@
 			files = (
 				4AC719B92A16CF1A00493637 /* SwiftyPing in Frameworks */,
 				4AC719D32A16DCAA00493637 /* ServiceManagement.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4AD000192D00000100000019 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,6 +130,7 @@
 			children = (
 				4ACFC88F2A06F2A900D4053E /* linkq */,
 				4AC719BF2A16D99B00493637 /* linkqHelper */,
+				4AD000172D00000100000017 /* linkqPrivilegedHelper */,
 				4ACFC88E2A06F2A900D4053E /* Products */,
 				4AC719D12A16DCAA00493637 /* Frameworks */,
 			);
@@ -98,6 +141,7 @@
 			children = (
 				4ACFC88D2A06F2A900D4053E /* linkq.app */,
 				4AC719BE2A16D99B00493637 /* linkqHelper.app */,
+				4AD000132D00000100000013 /* com.notfullin.linkqPrivilegedHelper */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,7 +152,9 @@
 				4ACFC8902A06F2A900D4053E /* linkqApp.swift */,
 				4ACFC8942A06F2AA00D4053E /* Assets.xcassets */,
 				4ACFC8992A06F2AA00D4053E /* linkq.entitlements */,
+				4AD000122D00000100000012 /* Info.plist */,
 				4ACFC8962A06F2AA00D4053E /* Preview Content */,
+				4AD000112D00000100000011 /* PrivilegedHelperProtocol.swift */,
 				4AC719D42A16E12200493637 /* StatusBarController.swift */,
 			);
 			path = linkq;
@@ -120,6 +166,19 @@
 				4ACFC8972A06F2AA00D4053E /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		4AD000172D00000100000017 /* linkqPrivilegedHelper */ = {
+			isa = PBXGroup;
+			children = (
+				4AD000142D00000100000014 /* main.swift */,
+				4AD000232D00000100000023 /* WiFiTurboWatchdog.c */,
+				4AD000242D00000100000024 /* WiFiTurboWatchdog.h */,
+				4AD000252D00000100000025 /* linkqPrivilegedHelper-Bridging-Header.h */,
+				4AD000152D00000100000015 /* Info.plist */,
+				4AD000162D00000100000016 /* com.notfullin.linkqPrivilegedHelper.plist */,
+			);
+			path = linkqPrivilegedHelper;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -149,11 +208,13 @@
 				4ACFC8892A06F2A900D4053E /* Sources */,
 				4ACFC88A2A06F2A900D4053E /* Frameworks */,
 				4ACFC88B2A06F2A900D4053E /* Resources */,
+				4AD000182D00000100000018 /* Copy Privileged Helper */,
 				4AC719CF2A16DC4D00493637 /* CopyFiles */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				4AD0001D2D0000010000001D /* PBXTargetDependency */,
 			);
 			name = linkq;
 			packageProductDependencies = (
@@ -162,6 +223,23 @@
 			productName = linkq;
 			productReference = 4ACFC88D2A06F2A900D4053E /* linkq.app */;
 			productType = "com.apple.product-type.application";
+		};
+		4AD0001C2D0000010000001C /* linkqPrivilegedHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4AD000222D00000100000022 /* Build configuration list for PBXNativeTarget "linkqPrivilegedHelper" */;
+			buildPhases = (
+				4AD0001A2D0000010000001A /* Sources */,
+				4AD000192D00000100000019 /* Frameworks */,
+				4AD0001B2D0000010000001B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = linkqPrivilegedHelper;
+			productName = com.notfullin.linkqPrivilegedHelper;
+			productReference = 4AD000132D00000100000013 /* com.notfullin.linkqPrivilegedHelper */;
+			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
 
@@ -177,6 +255,9 @@
 						CreatedOnToolsVersion = 14.3;
 					};
 					4ACFC88C2A06F2A900D4053E = {
+						CreatedOnToolsVersion = 14.3;
+					};
+					4AD0001C2D0000010000001C = {
 						CreatedOnToolsVersion = 14.3;
 					};
 				};
@@ -199,6 +280,7 @@
 			targets = (
 				4ACFC88C2A06F2A900D4053E /* linkq */,
 				4AC719BD2A16D99A00493637 /* linkqHelper */,
+				4AD0001C2D0000010000001C /* linkqPrivilegedHelper */,
 			);
 		};
 /* End PBXProject section */
@@ -220,6 +302,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4AD0001B2D0000010000001B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -237,11 +326,30 @@
 			buildActionMask = 2147483647;
 			files = (
 				4AC719D52A16E12200493637 /* StatusBarController.swift in Sources */,
+				4AD000012D00000100000001 /* PrivilegedHelperProtocol.swift in Sources */,
 				4ACFC8912A06F2A900D4053E /* linkqApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4AD0001A2D0000010000001A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4AD000032D00000100000003 /* main.swift in Sources */,
+				4AD000022D00000100000002 /* PrivilegedHelperProtocol.swift in Sources */,
+				4AD000062D00000100000006 /* WiFiTurboWatchdog.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4AD0001D2D0000010000001D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4AD0001C2D0000010000001C /* linkqPrivilegedHelper */;
+			targetProxy = 4AD0001E2D0000010000001E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		4AC719CB2A16D99C00493637 /* Debug */ = {
@@ -423,23 +531,25 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = linkq/linkq.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"linkq/Preview Content\"";
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = linkq/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_LSBackgroundOnly = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notfullin.linkq;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -453,26 +563,86 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = linkq/linkq.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"linkq/Preview Content\"";
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = linkq/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_LSBackgroundOnly = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notfullin.linkq;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		4AD000202D00000100000020 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = ZRB8WDV435;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = linkqPrivilegedHelper/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MARKETING_VERSION = 1.0.1;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-sectcreate",
+					__TEXT,
+					__launchd_plist,
+					"$(SRCROOT)/linkqPrivilegedHelper/com.notfullin.linkqPrivilegedHelper.plist",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.notfullin.linkqPrivilegedHelper;
+				PRODUCT_NAME = com.notfullin.linkqPrivilegedHelper;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "linkqPrivilegedHelper/linkqPrivilegedHelper-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4AD000212D00000100000021 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = ZRB8WDV435;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = linkqPrivilegedHelper/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MARKETING_VERSION = 1.0.1;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-sectcreate",
+					__TEXT,
+					__launchd_plist,
+					"$(SRCROOT)/linkqPrivilegedHelper/com.notfullin.linkqPrivilegedHelper.plist",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.notfullin.linkqPrivilegedHelper;
+				PRODUCT_NAME = com.notfullin.linkqPrivilegedHelper;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "linkqPrivilegedHelper/linkqPrivilegedHelper-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -503,6 +673,15 @@
 			buildConfigurations = (
 				4ACFC89D2A06F2AA00D4053E /* Debug */,
 				4ACFC89E2A06F2AA00D4053E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4AD000222D00000100000022 /* Build configuration list for PBXNativeTarget "linkqPrivilegedHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4AD000202D00000100000020 /* Debug */,
+				4AD000212D00000100000021 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

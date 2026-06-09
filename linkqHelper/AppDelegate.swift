@@ -23,15 +23,36 @@ class HelperAppDelegate: NSObject, NSApplicationDelegate {
         }
         
         if !isRunning {
-            var path = Bundle.main.bundlePath as NSString
-            for _ in 1...4 {
-                path = path.deletingLastPathComponent as NSString
+            guard let applicationURL = mainApplicationURL() else {
+                NSApp.terminate(nil)
+                return
             }
-            
-            let applicationPathString = path as String
-            let pathURL = URL(fileURLWithPath: applicationPathString)
-            NSWorkspace.shared.openApplication(at: pathURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+
+            NSWorkspace.shared.openApplication(at: applicationURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
         }
+    }
+
+    private func mainApplicationURL() -> URL? {
+        let helperURL = Bundle.main.bundleURL
+        let embeddedAppURL = helperURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+
+        if embeddedAppURL.pathExtension == "app" && FileManager.default.fileExists(atPath: embeddedAppURL.path) {
+            return embeddedAppURL
+        }
+
+        let debugAppURL = helperURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("linkq.app")
+
+        if FileManager.default.fileExists(atPath: debugAppURL.path) {
+            return debugAppURL
+        }
+
+        return nil
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
@@ -42,4 +63,3 @@ class HelperAppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 }
-
