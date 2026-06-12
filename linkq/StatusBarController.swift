@@ -39,7 +39,8 @@ struct Constants {
     static let averageJitterMax: TimeInterval = 0.15
     static let menuHistoryWindow: TimeInterval = 5 * 60
     static let historyRetentionWindow: TimeInterval = 24 * 60 * 60
-    static let historySaveInterval: TimeInterval = 30
+    static let historySaveInterval: TimeInterval = 60
+    static let historyPruneInterval: TimeInterval = 60
     static let maxMissedPings = 3
     static let menuWidth: CGFloat = 300
     static let menuLeadingPadding: CGFloat = 18
@@ -174,6 +175,39 @@ enum ConnectionQuality: String, Codable {
         }
     }
 
+    /// Stable codes for the binary history file; never renumber existing cases.
+    var storageCode: UInt8 {
+        switch self {
+        case .good:
+            return 0
+        case .average:
+            return 1
+        case .poor:
+            return 2
+        case .offline:
+            return 3
+        case .unknown:
+            return 4
+        }
+    }
+
+    init?(storageCode: UInt8) {
+        switch storageCode {
+        case 0:
+            self = .good
+        case 1:
+            self = .average
+        case 2:
+            self = .poor
+        case 3:
+            self = .offline
+        case 4:
+            self = .unknown
+        default:
+            return nil
+        }
+    }
+
     var tint: Color {
         switch self {
         case .good:
@@ -225,6 +259,10 @@ struct QualitySample: Identifiable, Codable {
 
 final class AppState: ObservableObject {
     @Published var quality: ConnectionQuality = .unknown
+    /// Invariant: sorted ascending by date. `loadHistory` sorts on load and `record`
+    /// appends with the current time; `pruneHistory(before:)` and
+    /// `QualityHistoryGraph.visibleLatencySamples(now:)` rely on this order.
+    /// A backward system-clock jump can break it until the affected samples age out.
     @Published var history: [QualitySample] = []
     @Published var isWiFiTurboEnabled = UserDefaults.standard.bool(forKey: Constants.wiFiTurboEnabledKey)
     @Published var isWiFiTurboChanging = false
@@ -238,6 +276,8 @@ final class AppState: ObservableObject {
     @Published var settingsGraphWindow: HistoryGraphWindow = .tenMinutes
 
     private var lastHistorySaveDate = Date.distantPast
+    private var lastHistoryPruneDate = Date.distantPast
+    private let historySaveQueue = DispatchQueue(label: "com.notfullin.linkq.history-save", qos: .utility)
 
     init() {
         let defaults = UserDefaults.standard
@@ -252,38 +292,161 @@ final class AppState: ObservableObject {
         quality = history.last?.quality ?? .unknown
 
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.saveHistory()
+            self?.saveHistory(async: false)
         }
     }
 
     func record(quality: ConnectionQuality, latency: TimeInterval?) {
-        let cutoff = Date().addingTimeInterval(-Constants.historyRetentionWindow)
+        let now = Date()
         self.quality = quality
         lastLatency = latency
-        history.append(QualitySample(date: Date(), quality: quality, latency: latency))
-        history.removeAll { $0.date < cutoff }
+        history.append(QualitySample(date: now, quality: quality, latency: latency))
 
-        if Date().timeIntervalSince(lastHistorySaveDate) >= Constants.historySaveInterval {
+        if now.timeIntervalSince(lastHistoryPruneDate) >= Constants.historyPruneInterval {
+            pruneHistory(before: now.addingTimeInterval(-Constants.historyRetentionWindow))
+            lastHistoryPruneDate = now
+        }
+
+        if now.timeIntervalSince(lastHistorySaveDate) >= Constants.historySaveInterval {
             saveHistory()
         }
     }
 
-    private func saveHistory() {
+    private func saveHistory(async: Bool = true) {
         lastHistorySaveDate = Date()
-        let encoder = JSONEncoder()
-        if let data = try? encoder.encode(history) {
-            UserDefaults.standard.set(data, forKey: Constants.historyKey)
+        let historySnapshot = history
+        let work = {
+            guard let fileURL = Self.historyFileURL else {
+                return
+            }
+
+            let data = Self.encodeHistory(historySnapshot)
+            try? FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            guard (try? data.write(to: fileURL, options: .atomic)) != nil else {
+                return
+            }
+
+            // Drop the legacy UserDefaults copy once the binary write succeeds:
+            // the JSON history exceeded the 4 MB CFPreferences value limit.
+            UserDefaults.standard.removeObject(forKey: Constants.historyKey)
+        }
+
+        if async {
+            historySaveQueue.async(execute: work)
+        } else {
+            historySaveQueue.sync(execute: work)
         }
     }
 
+    private func pruneHistory(before cutoff: Date) {
+        guard let firstRetainedIndex = history.firstIndex(where: { $0.date >= cutoff }) else {
+            history.removeAll(keepingCapacity: true)
+            return
+        }
+
+        if firstRetainedIndex > history.startIndex {
+            history.removeSubrange(history.startIndex..<firstRetainedIndex)
+        }
+    }
+
+    private static var historyFileURL: URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("linkq", isDirectory: true)
+            .appendingPathComponent("qualityHistory.bin")
+    }
+
     private static func loadHistory() -> [QualitySample] {
-        guard let data = UserDefaults.standard.data(forKey: Constants.historyKey) else {
+        guard let samples = loadStoredHistory() else {
             return []
         }
 
         let cutoff = Date().addingTimeInterval(-Constants.historyRetentionWindow)
-        let decoder = JSONDecoder()
-        return (try? decoder.decode([QualitySample].self, from: data))?.filter { $0.date >= cutoff } ?? []
+        return samples
+            .filter { $0.date >= cutoff }
+            .sorted { $0.date < $1.date }
+    }
+
+    private static func loadStoredHistory() -> [QualitySample]? {
+        if let fileURL = historyFileURL,
+           let data = try? Data(contentsOf: fileURL),
+           let samples = decodeHistory(data) {
+            return samples
+        }
+
+        // Migration: history used to live in UserDefaults as JSON until it
+        // outgrew the 4 MB CFPreferences value limit. The key is removed
+        // after the first successful binary save.
+        guard let legacyData = UserDefaults.standard.data(forKey: Constants.historyKey) else {
+            return nil
+        }
+
+        return try? JSONDecoder().decode([QualitySample].self, from: legacyData)
+    }
+
+    // Binary history layout: a 4-byte magic ("LQH1"), then 13-byte records of
+    // date (Float64 bit pattern, seconds since reference date), latency
+    // (Float32 bit pattern, NaN encodes nil) and a quality code, little-endian.
+    private static let historyFileMagic = Data("LQH1".utf8)
+    private static let historyRecordSize = 13
+
+    private static func encodeHistory(_ samples: [QualitySample]) -> Data {
+        var data = Data(capacity: historyFileMagic.count + samples.count * historyRecordSize)
+        data.append(historyFileMagic)
+
+        for sample in samples {
+            appendLittleEndianBits(sample.date.timeIntervalSinceReferenceDate.bitPattern, to: &data)
+            appendLittleEndianBits(Float(sample.latency ?? .nan).bitPattern, to: &data)
+            data.append(sample.quality.storageCode)
+        }
+
+        return data
+    }
+
+    private static func appendLittleEndianBits<T: FixedWidthInteger>(_ value: T, to data: inout Data) {
+        withUnsafeBytes(of: value.littleEndian) { data.append(contentsOf: $0) }
+    }
+
+    private static func decodeHistory(_ data: Data) -> [QualitySample]? {
+        guard data.starts(with: historyFileMagic) else {
+            return nil
+        }
+
+        let bytes = [UInt8](data.dropFirst(historyFileMagic.count))
+        guard bytes.count % historyRecordSize == 0 else {
+            return nil
+        }
+
+        var samples: [QualitySample] = []
+        samples.reserveCapacity(bytes.count / historyRecordSize)
+
+        var offset = 0
+        while offset < bytes.count {
+            var dateBits: UInt64 = 0
+            for byteIndex in 0..<8 {
+                dateBits |= UInt64(bytes[offset + byteIndex]) << (8 * byteIndex)
+            }
+
+            var latencyBits: UInt32 = 0
+            for byteIndex in 0..<4 {
+                latencyBits |= UInt32(bytes[offset + 8 + byteIndex]) << (8 * byteIndex)
+            }
+
+            let qualityCode = bytes[offset + 12]
+            offset += historyRecordSize
+
+            guard let quality = ConnectionQuality(storageCode: qualityCode) else {
+                continue
+            }
+
+            let latency = Float(bitPattern: latencyBits)
+            samples.append(QualitySample(
+                date: Date(timeIntervalSinceReferenceDate: Double(bitPattern: dateBits)),
+                quality: quality,
+                latency: latency.isNaN ? nil : TimeInterval(latency)
+            ))
+        }
+
+        return samples
     }
 
     static func currentStartAtLoginEnabled() -> Bool {
@@ -323,6 +486,9 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private var aboutWindow: NSWindow?
     private var privilegedHelperConnection: NSXPCConnection?
     private var wiFiTurboOperationID: UUID?
+    private var statusIconCache: [String: NSImage] = [:]
+    private var currentStatusIconKey: String?
+    private var appearanceObservation: NSKeyValueObservation?
 
     init(state: AppState) {
         appState = state
@@ -334,6 +500,18 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             self.setupMenu()
             self.updateStatusBarIcon(quality: self.appState.quality)
             self.checkForUpdates()
+
+            // The Wi-Fi turbo badge is composited with lockFocus, which bakes the
+            // current appearance into the cached image, so the cache must be
+            // dropped when the system switches between light and dark mode.
+            self.appearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.statusIconCache.removeAll()
+                    self.currentStatusIconKey = nil
+                    self.updateStatusBarIcon(quality: self.appState.quality)
+                }
+            }
         }
 
         monitor.pathUpdateHandler = { [weak self] path in
@@ -614,9 +792,31 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     func updateStatusBarIcon(quality: ConnectionQuality) {
         DispatchQueue.main.async {
-            let image = NSImage(named: quality.assetName)
-            self.statusItem.button?.image = self.appState.isWiFiTurboEnabled ? self.imageWithWiFiTurboBadge(baseImage: image) : image
-            self.statusItem.button?.image?.isTemplate = false
+            let iconKey = "\(quality.assetName)-\(self.appState.isWiFiTurboEnabled)"
+            guard self.currentStatusIconKey != iconKey else {
+                return
+            }
+
+            let image: NSImage?
+            if let cachedImage = self.statusIconCache[iconKey] {
+                image = cachedImage
+            } else {
+                let baseImage = NSImage(named: quality.assetName)
+                image = self.appState.isWiFiTurboEnabled ? self.imageWithWiFiTurboBadge(baseImage: baseImage) : baseImage
+                if let image {
+                    image.isTemplate = false
+                    self.statusIconCache[iconKey] = image
+                }
+            }
+
+            // A failed image load must not mark the key as current: that would
+            // suppress retries on every following tick and leave the icon blank.
+            guard let image else {
+                return
+            }
+
+            self.currentStatusIconKey = iconKey
+            self.statusItem.button?.image = image
         }
     }
 
@@ -783,8 +983,14 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             return
         }
 
-        appState.settingsGraphWindow = window
         UserDefaults.standard.set(window.rawValue, forKey: Constants.settingsGraphWindowKey)
+
+        // The segmented picker invokes its binding's setter inside the SwiftUI
+        // view-update pass; publishing there triggers "Publishing changes from
+        // within view updates", so the mutation is deferred to the next cycle.
+        DispatchQueue.main.async {
+            self.appState.settingsGraphWindow = window
+        }
     }
 
     private func restartProbingIfNeeded() {
@@ -1419,11 +1625,7 @@ struct QualityHistoryGraph: View {
     }
 
     private func aggregatedSamples(now: Date) -> [QualitySample] {
-        let cutoff = now.addingTimeInterval(-window)
-        let visibleSamples = samples
-            .filter { $0.date >= cutoff }
-            .filter { $0.latency != nil }
-            .sorted { $0.date < $1.date }
+        let visibleSamples = visibleLatencySamples(now: now)
 
         guard window >= HistoryGraphWindow.oneHour.interval, visibleSamples.count > maxVisiblePoints else {
             return visibleSamples
@@ -1451,6 +1653,25 @@ struct QualityHistoryGraph: View {
             let date = Date(timeIntervalSinceReferenceDate: bucketSize * (TimeInterval(bucket) + 0.5))
             return QualitySample(date: date, quality: quality(for: bucketSamples), latency: averageLatency)
         }
+    }
+
+    private func visibleLatencySamples(now: Date) -> [QualitySample] {
+        let cutoff = now.addingTimeInterval(-window)
+        var visibleSamples: [QualitySample] = []
+        let expectedSampleCount = Int(window / Constants.interval) + 1
+        visibleSamples.reserveCapacity(min(samples.count, expectedSampleCount))
+
+        for sample in samples.reversed() {
+            guard sample.date >= cutoff else {
+                break
+            }
+
+            if sample.latency != nil {
+                visibleSamples.append(sample)
+            }
+        }
+
+        return visibleSamples.reversed()
     }
 
     private func quality(for samples: [QualitySample]) -> ConnectionQuality {
