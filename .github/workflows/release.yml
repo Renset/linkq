@@ -14,14 +14,17 @@ jobs:
     runs-on: macos-latest
 
     env:
-      ARCHIVE_PATH: ${{ runner.temp }}/linkq.xcarchive
-      EXPORT_PATH: ${{ runner.temp }}/linkq-export
       APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
       DEVELOPER_ID_APPLICATION: ${{ vars.DEVELOPER_ID_APPLICATION }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Set build paths
+        run: |
+          echo "ARCHIVE_PATH=$RUNNER_TEMP/linkq.xcarchive" >> "$GITHUB_ENV"
+          echo "EXPORT_PATH=$RUNNER_TEMP/linkq-export" >> "$GITHUB_ENV"
 
       - name: Validate release secrets
         run: |
