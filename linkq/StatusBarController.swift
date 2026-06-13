@@ -12,6 +12,7 @@ import Network
 import Security
 import CryptoKit
 import SwiftUI
+import Combine
 
 struct Constants {
     static let githubUrl = "https://github.com/Renset/linkq"
@@ -41,6 +42,8 @@ struct Constants {
     static let historyRetentionWindow: TimeInterval = 24 * 60 * 60
     static let historySaveInterval: TimeInterval = 60
     static let historyPruneInterval: TimeInterval = 60
+    static let settingsGraphRefreshInterval: TimeInterval = 5
+    static let historyGraphMaxVisiblePoints = 180
     static let maxMissedPings = 3
     static let menuWidth: CGFloat = 300
     static let menuLeadingPadding: CGFloat = 18
@@ -244,17 +247,10 @@ enum ConnectionQuality: String, Codable {
     }
 }
 
-struct QualitySample: Identifiable, Codable {
-    let id = UUID()
+struct QualitySample: Codable {
     let date: Date
     let quality: ConnectionQuality
     let latency: TimeInterval?
-
-    enum CodingKeys: String, CodingKey {
-        case date
-        case quality
-        case latency
-    }
 }
 
 final class AppState: ObservableObject {
@@ -458,7 +454,7 @@ final class AppState: ObservableObject {
     }
 }
 
-final class StatusBarController: NSObject, NSMenuDelegate {
+final class StatusBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem!
     var rttBuffer: [TimeInterval] = []
     let rttBufferSize = 20
@@ -478,6 +474,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private var tcpProbeTimer: Timer?
     private var tcpProbeInFlight = false
     private var tcpConnection: NWConnection?
+    private var historyMenuItem: NSMenuItem?
     private var wiFiTurboMenuItem: NSMenuItem?
     private var startAtLoginMenuItem: NSMenuItem?
     private var newVersionMenuItem: NSMenuItem?
@@ -857,9 +854,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         menu.autoenablesItems = false
 
         let historyItem = NSMenuItem()
-        let historyView = NSHostingView(rootView: MenuHistoryView(model: appState))
-        historyView.setFrameSize(NSSize(width: Constants.menuWidth, height: 104))
-        historyItem.view = historyView
+        historyMenuItem = historyItem
         menu.addItem(historyItem)
 
         menu.addItem(NSMenuItem.separator())
@@ -904,10 +899,25 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     }
 
     func menuWillOpen(_ menu: NSMenu) {
+        installMenuHistoryView()
         appState.isStartAtLoginEnabled = AppState.currentStartAtLoginEnabled()
         refreshWiFiTurboStateFromSystem()
         updateStartAtLoginMenuItem()
         updateWiFiTurboMenuItem()
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        historyMenuItem?.view = nil
+    }
+
+    private func installMenuHistoryView() {
+        guard historyMenuItem?.view == nil else {
+            return
+        }
+
+        let historyView = NSHostingView(rootView: MenuHistoryView(model: appState))
+        historyView.setFrameSize(NSSize(width: Constants.menuWidth, height: 104))
+        historyMenuItem?.view = historyView
     }
 
     @objc func toggleStartAtLogin() {
@@ -1393,6 +1403,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             window.title = "linkq Settings"
             window.styleMask = [.titled, .closable, .miniaturizable]
             window.isReleasedWhenClosed = false
+            window.delegate = self
             hostingController.view.layoutSubtreeIfNeeded()
             window.setContentSize(hostingController.view.fittingSize)
             window.contentMinSize = hostingController.view.fittingSize
@@ -1414,6 +1425,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             window.title = "About linkq"
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false
+            window.delegate = self
             window.center()
             aboutWindow = window
         }
@@ -1444,6 +1456,20 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     @objc func quitApp() {
         NSApp.terminate(nil)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else {
+            return
+        }
+
+        if window === settingsWindow {
+            settingsWindow?.delegate = nil
+            settingsWindow = nil
+        } else if window === aboutWindow {
+            aboutWindow?.delegate = nil
+            aboutWindow = nil
+        }
     }
 }
 
@@ -1494,6 +1520,140 @@ private struct StartAtLoginError: LocalizedError {
     }
 }
 
+private final class SettingsHistoryGraphModel: ObservableObject {
+    @Published private(set) var samples: [QualitySample]
+    @Published private(set) var window: TimeInterval
+
+    private var isActive = true
+    private var lastRefreshDate = Date.distantPast
+
+    init(samples: [QualitySample], window: TimeInterval) {
+        self.samples = Self.graphSnapshot(from: samples, window: window)
+        self.window = window
+    }
+
+    func sync(samples: [QualitySample], window: TimeInterval, force: Bool = false) {
+        guard isActive || force else {
+            return
+        }
+
+        let now = Date()
+        let windowChanged = self.window != window
+        guard force || windowChanged || now.timeIntervalSince(lastRefreshDate) >= Constants.settingsGraphRefreshInterval else {
+            return
+        }
+
+        self.samples = Self.graphSnapshot(from: samples, window: window)
+        self.window = window
+        lastRefreshDate = now
+    }
+
+    func setActive(_ active: Bool, samples: [QualitySample], window: TimeInterval) {
+        guard isActive != active else {
+            if active {
+                sync(samples: samples, window: window, force: true)
+            }
+            return
+        }
+
+        isActive = active
+        if active {
+            sync(samples: samples, window: window, force: true)
+        } else {
+            self.samples.removeAll(keepingCapacity: false)
+            self.window = window
+        }
+    }
+
+    private struct BucketAccumulator {
+        var quality: ConnectionQuality?
+        var latencySum: TimeInterval = 0
+        var latencyCount = 0
+
+        mutating func add(_ sample: QualitySample) {
+            if let currentQuality = quality {
+                if sample.quality.severity > currentQuality.severity {
+                    quality = sample.quality
+                }
+            } else {
+                quality = sample.quality
+            }
+
+            if let latency = sample.latency {
+                latencySum += latency
+                latencyCount += 1
+            }
+        }
+
+        func sample(for bucket: Int, bucketSize: TimeInterval) -> QualitySample? {
+            guard latencyCount > 0 else {
+                return nil
+            }
+
+            return QualitySample(
+                date: Date(timeIntervalSinceReferenceDate: bucketSize * (TimeInterval(bucket) + 0.5)),
+                quality: quality ?? .unknown,
+                latency: latencySum / TimeInterval(latencyCount)
+            )
+        }
+    }
+
+    private static func graphSnapshot(from samples: [QualitySample], window: TimeInterval) -> [QualitySample] {
+        guard window >= HistoryGraphWindow.oneDay.interval else {
+            return visibleSnapshot(from: samples, window: window)
+        }
+
+        return aggregatedSnapshot(from: samples, window: window)
+    }
+
+    private static func visibleSnapshot(from samples: [QualitySample], window: TimeInterval) -> [QualitySample] {
+        let cutoff = Date().addingTimeInterval(-window)
+        let expectedSampleCount = Int(window / Constants.interval) + 1
+        var snapshot: [QualitySample] = []
+        snapshot.reserveCapacity(min(samples.count, expectedSampleCount))
+
+        for sample in samples.reversed() {
+            guard sample.date >= cutoff else {
+                break
+            }
+            snapshot.append(sample)
+        }
+
+        snapshot.reverse()
+        return snapshot
+    }
+
+    private static func aggregatedSnapshot(from samples: [QualitySample], window: TimeInterval) -> [QualitySample] {
+        let cutoff = Date().addingTimeInterval(-window)
+        let bucketSize = window / TimeInterval(Constants.historyGraphMaxVisiblePoints)
+        var buckets: [Int: BucketAccumulator] = [:]
+        buckets.reserveCapacity(Constants.historyGraphMaxVisiblePoints + 1)
+
+        for sample in samples.reversed() {
+            guard sample.date >= cutoff else {
+                break
+            }
+
+            let bucket = Int(sample.date.timeIntervalSinceReferenceDate / bucketSize)
+            buckets[bucket, default: BucketAccumulator()].add(sample)
+        }
+
+        var snapshot: [QualitySample] = []
+        snapshot.reserveCapacity(min(buckets.count, Constants.historyGraphMaxVisiblePoints + 1))
+        for bucket in buckets.keys.sorted() {
+            if let sample = buckets[bucket]?.sample(for: bucket, bucketSize: bucketSize) {
+                snapshot.append(sample)
+            }
+        }
+
+        if snapshot.count > Constants.historyGraphMaxVisiblePoints {
+            return Array(snapshot.suffix(Constants.historyGraphMaxVisiblePoints))
+        }
+
+        return snapshot
+    }
+}
+
 struct MenuHistoryView: View {
     @ObservedObject var model: AppState
 
@@ -1526,7 +1686,7 @@ struct MenuHistoryView: View {
 struct QualityHistoryGraph: View {
     let samples: [QualitySample]
     let window: TimeInterval
-    private let maxVisiblePoints = 180
+    private let maxVisiblePoints = Constants.historyGraphMaxVisiblePoints
     private let averageAxisRatio: CGFloat = 0.66
 
     var body: some View {
@@ -1627,7 +1787,7 @@ struct QualityHistoryGraph: View {
     private func aggregatedSamples(now: Date) -> [QualitySample] {
         let visibleSamples = visibleLatencySamples(now: now)
 
-        guard window >= HistoryGraphWindow.oneHour.interval, visibleSamples.count > maxVisiblePoints else {
+        guard window >= HistoryGraphWindow.oneDay.interval, visibleSamples.count > maxVisiblePoints else {
             return visibleSamples
         }
 
@@ -1751,6 +1911,7 @@ struct SettingsView: View {
     let setTargetHost: (String) -> Void
     let setTCPPort: (Int) -> Void
     let setSettingsGraphWindow: (HistoryGraphWindow) -> Void
+    @StateObject private var graphModel: SettingsHistoryGraphModel
     @State private var draftTargetHost: String
     @State private var draftTCPPort: String
 
@@ -1770,6 +1931,10 @@ struct SettingsView: View {
         self.setTargetHost = setTargetHost
         self.setTCPPort = setTCPPort
         self.setSettingsGraphWindow = setSettingsGraphWindow
+        _graphModel = StateObject(wrappedValue: SettingsHistoryGraphModel(
+            samples: model.history,
+            window: model.settingsGraphWindow.interval
+        ))
         _draftTargetHost = State(initialValue: model.targetHost)
         _draftTCPPort = State(initialValue: String(model.tcpPort))
     }
@@ -1830,7 +1995,12 @@ struct SettingsView: View {
             }
             Picker("Range", selection: Binding(
                 get: { model.settingsGraphWindow },
-                set: { setSettingsGraphWindow($0) }
+                set: { window in
+                    setSettingsGraphWindow(window)
+                    DispatchQueue.main.async {
+                        graphModel.sync(samples: model.history, window: window.interval, force: true)
+                    }
+                }
             )) {
                 ForEach(HistoryGraphWindow.allCases) { window in
                     Text(window.title).tag(window)
@@ -1838,8 +2008,29 @@ struct SettingsView: View {
             }
             .pickerStyle(.segmented)
 
-            QualityHistoryGraph(samples: model.history, window: model.settingsGraphWindow.interval)
+            QualityHistoryGraph(samples: graphModel.samples, window: graphModel.window)
                 .frame(height: 64)
+                .onAppear {
+                    graphModel.setActive(true, samples: model.history, window: model.settingsGraphWindow.interval)
+                }
+                .onDisappear {
+                    graphModel.setActive(false, samples: [], window: model.settingsGraphWindow.interval)
+                }
+                .onReceive(model.$history) { history in
+                    graphModel.sync(samples: history, window: model.settingsGraphWindow.interval)
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSWindow.didMiniaturizeNotification)) { _ in
+                    graphModel.setActive(false, samples: [], window: model.settingsGraphWindow.interval)
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSWindow.didDeminiaturizeNotification)) { _ in
+                    graphModel.setActive(true, samples: model.history, window: model.settingsGraphWindow.interval)
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didHideNotification)) { _ in
+                    graphModel.setActive(false, samples: [], window: model.settingsGraphWindow.interval)
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didUnhideNotification)) { _ in
+                    graphModel.setActive(true, samples: model.history, window: model.settingsGraphWindow.interval)
+                }
         }
     }
 
