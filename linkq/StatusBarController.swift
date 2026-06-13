@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import AppUpdater
 import SwiftyPing
 import ServiceManagement
 import Network
@@ -16,7 +17,6 @@ import Combine
 
 struct Constants {
     static let githubUrl = "https://github.com/Renset/linkq"
-    static let githubLatestReleaseApiUrl = "https://api.github.com/repos/Renset/linkq/releases/latest"
     static let supportAuthorUrl = "https://buymeacoffee.com/renset1"
     static let pingingHost = "1.1.1.1"
     static let loginItemIdentifier = "com.notfullin.linkqHelper"
@@ -26,6 +26,7 @@ struct Constants {
     static let historyKey = "qualityHistory"
     static let settingsGraphWindowKey = "settingsGraphWindow"
     static let lastNotifiedReleaseKey = "lastNotifiedRelease"
+    static let updateNotificationKind = "linkq.update.available"
     static let wiFiTurboWarningAcceptedKey = "wiFiTurboWarningAccepted"
     static let probeModeKey = "probeMode"
     static let targetHostKey = "targetHost"
@@ -57,16 +58,6 @@ struct JitterThresholds {
     init(averageLatency: TimeInterval) {
         good = min(averageLatency * Constants.goodJitterRatio, Constants.goodJitterMax)
         average = min(averageLatency * Constants.averageJitterRatio, Constants.averageJitterMax)
-    }
-}
-
-struct GitHubRelease: Decodable {
-    let tagName: String
-    let htmlUrl: String
-
-    enum CodingKeys: String, CodingKey {
-        case tagName = "tag_name"
-        case htmlUrl = "html_url"
     }
 }
 
@@ -454,13 +445,14 @@ final class AppState: ObservableObject {
     }
 }
 
-final class StatusBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
+final class StatusBarController: NSObject, NSMenuDelegate, NSWindowDelegate, NSUserNotificationCenterDelegate {
     var statusItem: NSStatusItem!
     var rttBuffer: [TimeInterval] = []
     let rttBufferSize = 20
     var pinger: SwiftyPing?
 
     private let appState: AppState
+    private var updater: AppUpdater?
     private let monitor = NWPathMonitor()
     // SwiftyPing's initializer and start/stop block on internal queues without
     // a QoS; calling them from the main thread triggers priority-inversion
@@ -478,7 +470,9 @@ final class StatusBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
     private var wiFiTurboMenuItem: NSMenuItem?
     private var startAtLoginMenuItem: NSMenuItem?
     private var newVersionMenuItem: NSMenuItem?
-    private var latestReleaseURL: URL?
+    private var availableUpdate: Update?
+    private var isCheckingForUpdates = false
+    private var isInstallingUpdate = false
     private var settingsWindow: NSWindow?
     private var aboutWindow: NSWindow?
     private var privilegedHelperConnection: NSXPCConnection?
@@ -490,8 +484,10 @@ final class StatusBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
     init(state: AppState) {
         appState = state
         super.init()
+        NSUserNotificationCenter.default.delegate = self
 
-        DispatchQueue.main.async {
+        Task { @MainActor in
+            self.updater = AppUpdater(owner: "Renset", repo: "linkq")
             self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
             self.refreshWiFiTurboStateFromSystem()
             self.setupMenu()
@@ -878,7 +874,7 @@ final class StatusBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
-        let newVersionItem = NSMenuItem(title: "New version available", action: #selector(openLatestRelease), keyEquivalent: "")
+        let newVersionItem = NSMenuItem(title: "Install update...", action: #selector(installLatestRelease), keyEquivalent: "")
         newVersionItem.target = self
         newVersionItem.isHidden = true
         newVersionMenuItem = newVersionItem
@@ -1084,69 +1080,72 @@ final class StatusBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
     }
 
     private func checkForUpdates() {
-        guard let url = URL(string: Constants.githubLatestReleaseApiUrl) else {
+        guard !isCheckingForUpdates, let updater else {
             return
         }
 
-        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-            guard
-                let self,
-                let data,
-                let release = try? JSONDecoder().decode(GitHubRelease.self, from: data),
-                self.isRemoteVersion(release.tagName, newerThan: self.currentAppVersion)
-            else {
+        isCheckingForUpdates = true
+        Task { [weak self] in
+            guard let self else {
                 return
             }
 
-            DispatchQueue.main.async {
-                self.latestReleaseURL = URL(string: release.htmlUrl)
-                self.newVersionMenuItem?.title = "New version \(release.tagName) available"
-                self.newVersionMenuItem?.isHidden = false
-                self.notifyAboutNewVersionIfNeeded(release.tagName)
-            }
-        }.resume()
-    }
+            do {
+                let update = try await updater.check()
+                await MainActor.run {
+                    self.isCheckingForUpdates = false
+                    guard let update else {
+                        self.availableUpdate = nil
+                        self.newVersionMenuItem?.isHidden = true
+                        return
+                    }
 
-    private var currentAppVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
-    }
-
-    private func isRemoteVersion(_ remoteVersion: String, newerThan localVersion: String) -> Bool {
-        let remote = normalizedVersion(remoteVersion)
-        let local = normalizedVersion(localVersion)
-        let maxCount = max(remote.count, local.count)
-
-        for index in 0..<maxCount {
-            let remotePart = index < remote.count ? remote[index] : 0
-            let localPart = index < local.count ? local[index] : 0
-
-            if remotePart != localPart {
-                return remotePart > localPart
+                    self.availableUpdate = update
+                    let version = self.versionLabel(for: update)
+                    self.newVersionMenuItem?.title = "Install linkq \(version)..."
+                    self.newVersionMenuItem?.isHidden = false
+                    self.notifyAboutNewVersionIfNeeded(update)
+                }
+            } catch {
+                await MainActor.run {
+                    self.isCheckingForUpdates = false
+                }
+                NSLog("linkq update check failed: \(error.localizedDescription)")
             }
         }
-
-        return false
     }
 
-    private func normalizedVersion(_ version: String) -> [Int] {
-        version
-            .trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
-            .split(separator: ".")
-            .map { Int($0.filter(\.isNumber)) ?? 0 }
+    private func versionLabel(for update: Update) -> String {
+        let assetName = update.assetName
+        let basename = (assetName as NSString).deletingPathExtension
+        let prefix = "linkq-"
+
+        guard basename.hasPrefix(prefix) else {
+            return assetName
+        }
+
+        let version = String(basename.dropFirst(prefix.count))
+        if version.hasSuffix(".tar") {
+            return String(version.dropLast(".tar".count))
+        }
+
+        return version
     }
 
-    private func notifyAboutNewVersionIfNeeded(_ version: String) {
+    private func notifyAboutNewVersionIfNeeded(_ update: Update) {
+        let version = versionLabel(for: update)
         let defaults = UserDefaults.standard
-        guard defaults.string(forKey: Constants.lastNotifiedReleaseKey) != version else {
+        guard defaults.string(forKey: Constants.lastNotifiedReleaseKey) != update.assetName else {
             return
         }
 
         let notification = NSUserNotification()
         notification.title = "linkq update available"
-        notification.informativeText = "Version \(version) is available on GitHub Releases."
+        notification.informativeText = "Version \(version) is ready to install."
         notification.soundName = NSUserNotificationDefaultSoundName
+        notification.userInfo = ["kind": Constants.updateNotificationKind]
         NSUserNotificationCenter.default.deliver(notification)
-        defaults.set(version, forKey: Constants.lastNotifiedReleaseKey)
+        defaults.set(update.assetName, forKey: Constants.lastNotifiedReleaseKey)
     }
 
     private func installPrivilegedHelperThenSet(_ enabled: Bool, operationID: UUID) {
@@ -1440,11 +1439,9 @@ final class StatusBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
         }
     }
 
-    @objc func openLatestRelease() {
-        if let latestReleaseURL {
-            NSWorkspace.shared.open(latestReleaseURL)
-        } else {
-            openGithubReleases()
+    @objc func installLatestRelease() {
+        Task { [weak self] in
+            await self?.installAvailableUpdate()
         }
     }
 
@@ -1470,6 +1467,76 @@ final class StatusBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
             aboutWindow?.delegate = nil
             aboutWindow = nil
         }
+    }
+
+    @MainActor
+    private func installAvailableUpdate() async {
+        guard !isInstallingUpdate else {
+            return
+        }
+
+        isInstallingUpdate = true
+        defer {
+            isInstallingUpdate = false
+        }
+
+        do {
+            guard let updater else {
+                showUpdateAlert(message: "Could not check for updates.", informativeText: "The updater is not ready yet. Please try again in a moment.")
+                return
+            }
+
+            let update: Update
+            if let availableUpdate {
+                update = availableUpdate
+            } else if let checkedUpdate = try await updater.check() {
+                availableUpdate = checkedUpdate
+                update = checkedUpdate
+            } else {
+                showUpdateAlert(message: "linkq is up to date.", informativeText: "No newer release is available right now.")
+                return
+            }
+
+            let version = versionLabel(for: update)
+            guard confirmUpdateInstallation(version: version) else {
+                return
+            }
+
+            try await update.installAndRelaunch()
+        } catch {
+            showUpdateAlert(message: "Could not install the update.", informativeText: error.localizedDescription)
+        }
+    }
+
+    @MainActor
+    private func confirmUpdateInstallation(version: String) -> Bool {
+        let alert = NSAlert()
+        alert.messageText = "Install linkq \(version)?"
+        alert.informativeText = "linkq will quit, install the update, and relaunch."
+        alert.addButton(withTitle: "Install and Relaunch")
+        alert.addButton(withTitle: "Later")
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+
+    @MainActor
+    private func showUpdateAlert(message: String, informativeText: String) {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.informativeText = informativeText
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+
+    func userNotificationCenter(_ center: NSUserNotificationCenter, didActivate notification: NSUserNotification) {
+        guard notification.userInfo?["kind"] as? String == Constants.updateNotificationKind else {
+            return
+        }
+
+        installLatestRelease()
+    }
+
+    func userNotificationCenter(_ center: NSUserNotificationCenter, shouldPresent notification: NSUserNotification) -> Bool {
+        true
     }
 }
 

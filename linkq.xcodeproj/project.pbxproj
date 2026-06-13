@@ -21,6 +21,7 @@
 		4AD000032D00000100000003 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AD000142D00000100000014 /* main.swift */; };
 		4AD000042D00000100000004 /* com.notfullin.linkqPrivilegedHelper in Copy Privileged Helper */ = {isa = PBXBuildFile; fileRef = 4AD000132D00000100000013 /* com.notfullin.linkqPrivilegedHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		4AD000062D00000100000006 /* WiFiTurboWatchdog.c in Sources */ = {isa = PBXBuildFile; fileRef = 4AD000232D00000100000023 /* WiFiTurboWatchdog.c */; };
+		4AD000262D00000100000026 /* AppUpdater in Frameworks */ = {isa = PBXBuildFile; productRef = 4AD000282D00000100000028 /* AppUpdater */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +93,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4AD000262D00000100000026 /* AppUpdater in Frameworks */,
 				4AC719B92A16CF1A00493637 /* SwiftyPing in Frameworks */,
 				4AC719D32A16DCAA00493637 /* ServiceManagement.framework in Frameworks */,
 			);
@@ -219,6 +221,7 @@
 			name = linkq;
 			packageProductDependencies = (
 				4AC719B82A16CF1A00493637 /* SwiftyPing */,
+				4AD000282D00000100000028 /* AppUpdater */,
 			);
 			productName = linkq;
 			productReference = 4ACFC88D2A06F2A900D4053E /* linkq.app */;
@@ -273,6 +276,7 @@
 			mainGroup = 4ACFC8842A06F2A900D4053E;
 			packageReferences = (
 				4AC719B72A16CF1A00493637 /* XCRemoteSwiftPackageReference "SwiftyPing" */,
+				4AD000272D00000100000027 /* XCRemoteSwiftPackageReference "AppUpdater" */,
 			);
 			productRefGroup = 4ACFC88E2A06F2A900D4053E /* Products */;
 			projectDirPath = "";
@@ -534,7 +538,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"linkq/Preview Content\"";
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -550,7 +554,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 2.0.1;
+				MARKETING_VERSION = 2.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notfullin.linkq;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -567,7 +571,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"linkq/Preview Content\"";
 				DEVELOPMENT_TEAM = ZRB8WDV435;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -583,7 +587,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 2.0.1;
+				MARKETING_VERSION = 2.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.notfullin.linkq;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -699,6 +703,14 @@
 				kind = branch;
 			};
 		};
+		4AD000272D00000100000027 /* XCRemoteSwiftPackageReference "AppUpdater" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mxcl/AppUpdater.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -706,6 +718,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4AC719B72A16CF1A00493637 /* XCRemoteSwiftPackageReference "SwiftyPing" */;
 			productName = SwiftyPing;
+		};
+		4AD000282D00000100000028 /* AppUpdater */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4AD000272D00000100000027 /* XCRemoteSwiftPackageReference "AppUpdater" */;
+			productName = AppUpdater;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
